@@ -1,0 +1,155 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<product productid="affiliatelinks" active="1">
+	<title>首页友情连接</title>
+	<description>在论坛首页加入图片或文字友情连接，支持单行或连续排列，不支持滚动</description>
+	<version>1.9</version>
+	<url />
+	<versioncheckurl />
+	<dependencies>
+		<dependency dependencytype="vbulletin" minversion="3.8.11" maxversion="" />
+	</dependencies>
+	<codes>
+		<code version="1.0">
+			<installcode><![CDATA[$db->hide_errors();
+$db->query_write("
+CREATE TABLE IF NOT EXISTS `" . TABLE_PREFIX . "sitelink` (
+	sitelinkid INT UNSIGNED NOT NULL AUTO_INCREMENT,
+	title CHAR(100) NOT NULL DEFAULT '',
+	url VARCHAR(255) NOT NULL DEFAULT '',
+	logourl VARCHAR(255) NOT NULL DEFAULT '',
+	description MEDIUMTEXT,
+	displayorder SMALLINT(5) NOT NULL DEFAULT '0',
+	fullrow BOOL NOT NULL,
+	PRIMARY KEY (sitelinkid))");
+$db->show_errors();]]></installcode>
+			<uninstallcode><![CDATA[$db->hide_errors();
+$db->query_write("DROP TABLE `" . TABLE_PREFIX . "sitelink`");
+$db->show_errors();]]></uninstallcode>
+		</code>
+	</codes>
+	<templates>
+		<template name="forumhome_sitelink" templatetype="template" date="1231653663" username="joey" version="1.0"><![CDATA[<tbody>
+<tr>
+<td class="thead" colspan="2" >
+	<a style="float:right" href="#top" onclick="return toggle_collapse('forumhome_links')">
+		<img id="collapseimg_forumhome_links" src="$stylevar[imgdir_button]/collapse_thead$vbcollapse[collapseimg_forumhome_links].svg" alt="" border="0" />
+	</a>
+	$vbphrase[site_link]
+</td>
+</tr>
+</tbody>
+<tbody id="collapseobj_forumhome_links" style="$vbcollapse[collapseobj_forumhome_links]">
+$sitelinks_row
+<if condition="$sitelinks_image OR $sitelinks_text">
+<tr>
+	<td class="alt2" width="30px"><img src="$stylevar[imgdir_misc]/sitelink.svg" alt="$vbphrase[site_link]" border="0" /></td>
+	<td class="alt1"  width="100%">
+		<div class="smallfont">
+			$sitelinks_image
+			<if condition="$sitelinks_image AND $sitelinks_text"><hr></if>
+			$sitelinks_text
+		</div>
+	</td>
+</tr>
+</if>
+</tbody>]]></template>
+		<template name="forumhome_sitelinkbit_image" templatetype="template" date="1231088947" username="joey" version="1.0"><![CDATA[<a href="$sitelink[url]" target=_blank><img src="$sitelink[logourl]" alt="$sitelink[title]:$sitelink[desc]" border="0" height="31" width="88" /></a>]]></template>
+		<template name="forumhome_sitelinkbit_row" templatetype="template" date="1231653597" username="joey" version="1.0"><![CDATA[<tr>
+	<td class="alt2" width="30px"><img src="$stylevar[imgdir_misc]/sitelink.svg" alt="$vbphrase[site_link]" border="0" /></td>
+	<td class="alt1" width="100%">
+<if condition="$sitelink[logourl]">
+		<a style="float:right" href="$sitelink[url]">
+			<img src="$sitelink[logourl]" alt="$sitelink[title]" border="0" />
+		</a>
+</if>
+		<div>
+			<a href="$sitelink[url]"><strong>$sitelink[title]</strong></a>
+		</div>
+		<div class="smallfont">$sitelink[desc]</div>
+	</td>
+</tr>]]></template>
+		<template name="forumhome_sitelinkbit_text" templatetype="template" date="1231089063" username="joey" version="1.0"><![CDATA[<a href="$sitelink[url]" target="_blank" title="$sitelink[desc]">$sitelink[title]</a>&nbsp;]]></template>
+	</templates>
+	<plugins>
+		<plugin active="1" executionorder="5">
+			<title>Sitelinks Preloading</title>
+			<hookname>cache_templates</hookname>
+			<phpcode><![CDATA[$specialtemplates = array_merge($specialtemplates, array('sitelinkcache'));
+$globaltemplates = array_merge($globaltemplates, array('forumhome_sitelink', 'forumhome_sitelinkbit_text', 'forumhome_sitelinkbit_image', 'forumhome_sitelinkbit_row'));]]></phpcode>
+		</plugin>
+		<plugin active="1" executionorder="5">
+			<title>友情链接</title>
+			<hookname>forumhome_complete</hookname>
+			<phpcode><![CDATA[$vbulletin->datastore->fetch($specialtemplates);
+$vbulletin->datastore->fetch($globaltemplates);
+
+if ($vbulletin->options['displaysitelinks'] && is_array($vbulletin->sitelinkcache))
+{
+	$sitelinks_row = '';
+	$sitelinks_image = '';
+	$sitelinks_text = '';
+	    foreach ($vbulletin->sitelinkcache as $sitelink)
+	    {
+	        $sitelink['title'] = htmlspecialchars_uni($sitelink['title']);
+	        $sitelink['desc'] = $sitelink['description'];
+
+	        if ($sitelink['fullrow'])
+	        {
+	       	 	$sitelink['logourl'] = ($sitelink['logourl'] == 'http://') ? '' :  $sitelink['logourl'];
+	            eval('$sitelinks_row .= "' . fetch_template('forumhome_sitelinkbit_row') . '";');
+	        }
+	        else if (!empty($sitelink['logourl']) AND $sitelink['logourl']!='http://')
+	        {
+	            eval('$sitelinks_image .= "' . fetch_template('forumhome_sitelinkbit_image') . ' ";');
+	        }
+	        else
+	        {
+	            eval('$sitelinks_text .= "' . fetch_template('forumhome_sitelinkbit_text') . '";');
+	        }
+	    }
+	   eval('$template_hook["forumhome_wgo_pos5"] .= "' . fetch_template('forumhome_sitelink') . '";');
+}]]></phpcode>
+		</plugin>
+	</plugins>
+	<phrases>
+		<phrasetype name="控制面板全局(Control Panel Global)" fieldname="cpglobal">
+			<phrase name="add_new_site_link" date="1231087079" username="joey" version="1.0"><![CDATA[添加新的友情链接]]></phrase>
+			<phrase name="are_you_sure_you_want_to_delete_this_sitelink" date="1231087431" username="joey" version="1.0"><![CDATA[<blockquote>您确认要删除该友情连接？</blockquote>]]></phrase>
+			<phrase name="deleted_sitelink_successfully" date="1231087483" username="joey" version="1.0"><![CDATA[删除友情连接成功]]></phrase>
+			<phrase name="sitelink_description" date="1231087627" username="joey" version="1.0"><![CDATA[描述<dfn>如果填写描述，将显示在鼠标悬停时或整行模式下的描述中</dfn>]]></phrase>
+			<phrase name="sitelink_fullrow" date="1231087837" username="joey" version="1.0"><![CDATA[整行显示<dfn>如果选是，该友情连接将会占用表格一整行的空间</dfn>]]></phrase>
+			<phrase name="sitelink_fullrow_s" date="1231089616" username="joey" version="1.0"><![CDATA[整行显示]]></phrase>
+			<phrase name="sitelink_logourl" date="1231087747" username="joey" version="1.0"><![CDATA[图标链接<dfn>如果填写图标链接而没有填写描述，则该友情连接链接为图像链接</dfn>]]></phrase>
+		</phrasetype>
+		<phrasetype name="控制面板首页(Control Panel Home Pages)" fieldname="cphome">
+			<phrase name="site_link_manager" date="1230985426" username="joey" version="1.0"><![CDATA[管理友情连接]]></phrase>
+		</phrasetype>
+		<phrasetype name="错误信息(Error Messages)" fieldname="error">
+			<phrase name="no_sitelink_found" date="1231086895" username="joey" version="1.0"><![CDATA[暂无友情连接]]></phrase>
+			<phrase name="saved_sitelink_x_successfully" date="1231087371" username="joey" version="1.0"><![CDATA[成功保存友情连接]]></phrase>
+		</phrasetype>
+		<phrasetype name="全局(GLOBAL)" fieldname="global">
+			<phrase name="site_link" date="1231087150" username="joey" version="1.0"><![CDATA[友情连接]]></phrase>
+		</phrasetype>
+		<phrasetype name="论坛设置(vBulletin Settings)" fieldname="vbsettings">
+			<phrase name="setting_displaysitelinks_desc" date="1231433871" username="denis" version="1.0"><![CDATA[选择"是",则在论坛首页显示友情连接。]]></phrase>
+			<phrase name="setting_displaysitelinks_title" date="1231433871" username="denis" version="1.0"><![CDATA[友情连接]]></phrase>
+		</phrasetype>
+	</phrases>
+	<options>
+		<settinggroup name="forumhome" displayorder="400">
+			<setting varname="displaysitelinks" displayorder="90">
+				<datatype>boolean</datatype>
+				<optioncode>yesno</optioncode>
+				<defaultvalue>1</defaultvalue>
+			</setting>
+		</settinggroup>
+	</options>
+	<helptopics>
+	</helptopics>
+	<cronentries>
+	</cronentries>
+	<faqentries>
+	</faqentries>
+</product>

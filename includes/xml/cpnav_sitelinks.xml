@@ -1,0 +1,14 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+
+<navgroups product="affiliatelinks" master="true">
+
+
+	<navgroup phrase="vbulletin_options" permissions="canadminsettings" hr="true" displayorder="10">
+
+		<navoption displayorder="100">
+			<phrase>site_link_manager</phrase>
+			<link>sitelink.php?do=modify</link>
+		</navoption>
+	</navgroup>
+
+</navgroups>
